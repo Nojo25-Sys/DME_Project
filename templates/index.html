@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DME — Dossiers Médicaux Électroniques</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">🏥</div>
+      <h2>Système DME</h2>
+      <p>Dossiers Médicaux Électroniques</p>
+    </div>
+    <div id="loginAlert" class="alert"></div>
+    <div class="form-group">
+      <label>Nom d'utilisateur</label>
+      <input type="text" id="username" placeholder="admin"/>
+    </div>
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input type="password" id="password" placeholder="DME_Admin_2026!"/>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="login()">Se connecter</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">🏥</div>
+      <div><h2>DME</h2><p>Système médical</p></div>
+    </div>
+    <div class="sidebar-menu">
+      <div class="sidebar-label">Menu</div>
+      <button class="active" onclick="showPage('dashboard', this)">📊 Tableau de bord</button>
+      <button onclick="showPage('patients', this)">👥 Patients</button>
+      <button onclick="showPage('consultations', this)">🩺 Consultations</button>
+      <button onclick="showPage('stats', this)">📈 Statistiques</button>
+      <div class="sidebar-label" id="adminLabel" style="display:none;">Administration</div>
+      <button id="btnAdmin" style="display:none;" onclick="showPage('users', this)">⚙️ Utilisateurs</button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="avatar">👤</div>
+        <div>
+          <div class="user-name" id="sidebarUsername">Admin</div>
+          <div class="user-role" id="sidebarRole">Administrateur</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-block logout-btn" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div><h1>Tableau de bord</h1><p id="dashboardDate"></p></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-info">
+            <div class="number" id="stat-patients">0</div>
+            <div class="label">Total patients</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">🩺</div>
+          <div class="stat-info">
+            <div class="number" id="stat-consultations">0</div>
+            <div class="label">Consultations</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">👨‍⚕️</div>
+          <div class="stat-info">
+            <div class="number" id="stat-medecins">0</div>
+            <div class="label">Médecins</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Derniers patients enregistrés</h3>
+          <button class="btn btn-primary" onclick="showPage('patients', document.querySelectorAll('.sidebar button')[1])">Voir tout</button>
+        </div>
+        <table>
+          <thead><tr><th>Patient</th><th>Âge</th><th>Sexe</th><th>Contact</th><th>Consultations</th></tr></thead>
+          <tbody id="recent-patients"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PATIENTS -->
+    <div class="page" id="page-patients">
+      <div class="page-header">
+        <div><h1>Patients</h1><p>Gestion des dossiers patients</p></div>
+        <button class="btn btn-primary" onclick="openAddPatient()">+ Nouveau patient</button>
+      </div>
+      <div id="patientAlert" class="alert"></div>
+      <div class="card">
+        <div class="search-bar">
+          <input type="text" id="searchPatient" placeholder="🔍 Rechercher un patient..." oninput="filterPatients()"/>
+        </div>
+        <table>
+          <thead><tr><th>Patient</th><th>Âge</th><th>Sexe</th><th>Contact</th><th>Actions</th></tr></thead>
+          <tbody id="patientTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONSULTATIONS -->
+    <div class="page" id="page-consultations">
+      <div class="page-header">
+        <div><h1>Consultations</h1><p>Historique par patient</p></div>
+      </div>
+      <div id="consultAlert" class="alert"></div>
+      <div class="card">
+        <div class="card-header"><h3>Sélectionner un patient</h3></div>
+        <div class="form-group">
+          <select id="selectPatient" onchange="loadConsultations()">
+            <option value="">-- Choisir un patient --</option>
+          </select>
+        </div>
+      </div>
+      <div id="consultSection" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 id="consultTitle"></h3>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-info" onclick="printPatientPDF()">🖨️ Imprimer fiche</button>
+              <button class="btn btn-primary" onclick="openModal('modalConsult')">+ Nouvelle consultation</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Date</th><th>Symptômes</th><th>Diagnostic</th><th>Traitement</th><th>Actions</th></tr></thead>
+            <tbody id="consultTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATISTIQUES -->
+    <div class="page" id="page-stats">
+      <div class="page-header">
+        <div><h1>Statistiques</h1><p>Analyse et graphiques</p></div>
+      </div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-icon blue">👥</div>
+          <div class="stat-info">
+            <div class="number" id="stats-total-patients">0</div>
+            <div class="label">Total patients</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">🩺</div>
+          <div class="stat-info">
+            <div class="number" id="stats-total-consult">0</div>
+            <div class="label">Total consultations</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+        <div class="card">
+          <div class="card-header"><h3>Consultations par mois</h3></div>
+          <canvas id="chartMois" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Répartition par sexe</h3></div>
+          <canvas id="chartSexe" height="200"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Top 5 patients les plus consultés</h3></div>
+        <canvas id="chartTop" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- UTILISATEURS -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div><h1>Utilisateurs</h1><p>Comptes médecins et administrateurs</p></div>
+        <button class="btn btn-primary" onclick="openModal('modalUser')">+ Nouvel utilisateur</button>
+      </div>
+      <div id="userAlert" class="alert"></div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Liste des utilisateurs</h3>
+          <span id="userCount" class="badge badge-blue">0 utilisateur(s)</span>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Nom d'utilisateur</th><th>Rôle</th><th>Actions</th></tr></thead>
+          <tbody id="userTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL PATIENT -->
+<div class="modal-overlay" id="modalPatient">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalPatientTitle">Nouveau patient</h3>
+      <button class="modal-close" onclick="closeModal('modalPatient')">✕</button>
+    </div>
+    <input type="hidden" id="patientId"/>
+    <div class="form-group"><label>Nom *</label><input id="pNom" placeholder="Ex: Mensah"/></div>
+    <div class="form-group"><label>Prénom *</label><input id="pPrenom" placeholder="Ex: Kossi"/></div>
+    <div class="form-group"><label>Âge *</label><input id="pAge" type="number" placeholder="Ex: 28" min="0" max="120"/></div>
+    <div class="form-group">
+      <label>Sexe</label>
+      <select id="pSexe">
+        <option value="">-- Sélectionner --</option>
+        <option value="M">Masculin</option>
+        <option value="F">Féminin</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Contact</label><input id="pContact" placeholder="Ex: 0909090909"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalPatient')">Annuler</button>
+      <button class="btn btn-primary" onclick="savePatient()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONSULTATION -->
+<div class="modal-overlay" id="modalConsult">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalConsultTitle">Nouvelle consultation</h3>
+      <button class="modal-close" onclick="closeModal('modalConsult')">✕</button>
+    </div>
+    <input type="hidden" id="consultId"/>
+    <div class="form-group"><label>Symptômes</label><textarea id="cSymptomes" rows="3" placeholder="Ex: Fièvre, maux de tête..."></textarea></div>
+    <div class="form-group"><label>Diagnostic</label><textarea id="cDiagnostic" rows="3" placeholder="Ex: Paludisme..."></textarea></div>
+    <div class="form-group"><label>Traitement</label><textarea id="cTraitement" rows="3" placeholder="Ex: Artemether 80mg..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalConsult')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveConsultation()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UTILISATEUR -->
+<div class="modal-overlay" id="modalUser">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nouvel utilisateur</h3>
+      <button class="modal-close" onclick="closeModal('modalUser')">✕</button>
+    </div>
+    <div class="form-group"><label>Nom d'utilisateur *</label><input id="uUsername" placeholder="Ex: dr.mensah"/></div>
+    <div class="form-group"><label>Mot de passe *</label><input id="uPassword" type="password" placeholder="••••••••"/></div>
+    <div class="form-group"><label>Confirmer le mot de passe *</label><input id="uPasswordConfirm" type="password" placeholder="••••••••"/></div>
+    <div class="form-group">
+      <label>Rôle</label>
+      <select id="uRole">
+        <option value="medecin">Médecin</option>
+        <option value="admin">Administrateur</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalUser')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveUser()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PDF -->
+<div class="modal-overlay" id="modalPDF">
+  <div class="modal" style="width:600px; max-width:95vw;">
+    <div class="modal-header">
+      <h3>🖨️ Fiche patient</h3>
+      <button class="modal-close" onclick="closeModal('modalPDF')">✕</button>
+    </div>
+    <div id="pdfContent"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalPDF')">Fermer</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
