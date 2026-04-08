@@ -40,7 +40,7 @@ Application web de gestion de dossiers médicaux développée avec Flask.
 ### Configuration
 1. Cloner le dépôt :
 ```bash
-git clone <url-du-dépôt>
+git clone https://github.com/Nojo25-Sys/DME_Project.git
 cd dme_project
 ```
 
